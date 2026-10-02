@@ -1,0 +1,16 @@
+Confusion Matrix (rows=true [grasp=0, non_grasp=1], cols=pred [0,1]):
+[[746   1]
+ [ 37 949]]
+
+Confusion Matrix terms (positive = grasp=0):
+TP (grasp->grasp)      : 746
+FN (grasp->non_grasp)  : 1
+FP (non_grasp->grasp)  : 37
+TN (non_grasp->non)    : 949
+
+=== Metrics (positive class = grasp=0) ===
+Accuracy : 0.9781
+Precision: 0.9527
+Recall   : 0.9987
+F1-score : 0.9752
+

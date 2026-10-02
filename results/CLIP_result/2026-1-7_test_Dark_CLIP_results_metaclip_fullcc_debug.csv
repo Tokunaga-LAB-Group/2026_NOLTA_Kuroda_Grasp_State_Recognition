@@ -1,0 +1,23 @@
+Item,Value
+Result file,/data/Users/kuroda/2025_research/2025_result/2025-12-28_kiban/test/CLIP/2026-1-5_kiban_test_Dark_demo_CLIP_results_metaclip_fullcc/clip_cosine_results.csv
+Annotation file,/data/Users/kuroda/2025_research/2025-12-28_kiban/CLIP_csv/marge/merged_annotations_2026_1_5_kiban_test_Dark.csv
+Count,1636
+Threshold(margin),0.0
+,
+"Confusion Matrix (rows=true [grasp=0, non_grasp=1], cols=pred [0,1])",
+CM row0,[582 35]
+CM row1,[176 843]
+,
+Confusion Matrix terms (positive = grasp=0),
+TP (grasp->grasp),582
+FN (grasp->non_grasp),35
+FP (non_grasp->grasp),176
+TN (non_grasp->non),843
+,
+Metrics (positive class = grasp=0),
+Accuracy,0.8710
+Precision,0.7678
+Recall,0.9433
+F1-score,0.8465
+AUC(grasp0),0.9051
+ROC image,/data/Users/kuroda/2025_research/2025_result/2025-12-28_kiban/CLIP_result/test_Dark/roc_metaclip_fullcc_debug.png

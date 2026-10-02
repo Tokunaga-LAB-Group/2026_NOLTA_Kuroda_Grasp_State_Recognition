@@ -1,0 +1,21 @@
+{
+  "svm": {
+    "kernel": "rbf",
+    "C": 10.0,
+    "gamma": "scale",
+    "class_weight": "balanced"
+  },
+  "resize": [
+    256,
+    256
+  ],
+  "batch_size": 32,
+  "video_regex": "(video\\d+)",
+  "group_counts": {
+    "video1": 70,
+    "video2": 70,
+    "video3": 70,
+    "video4": 70
+  },
+  "train_data_path": "/data/Users/kuroda/2025_research/2025-12-28_kiban/train/sampling100+180"
+}
