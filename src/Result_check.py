@@ -1,19 +1,47 @@
-import os
+import argparse
 import csv
-import pandas as pd
+import os
+
 import matplotlib.pyplot as plt
-from sklearn.metrics import roc_curve, auc, confusion_matrix
+import pandas as pd
+from sklearn.metrics import auc, confusion_matrix, roc_curve
+
+
+def get_args():
+    parser = argparse.ArgumentParser(
+        description="Evaluate a CLIP result CSV against annotations."
+    )
+    parser.add_argument(
+        "--result_path",
+        type=str,
+        required=True,
+        help="Path to the CLIP result CSV.",
+    )
+    parser.add_argument(
+        "--annotation_path",
+        type=str,
+        required=True,
+        help="Path to the annotation CSV containing Image and Annotation columns.",
+    )
+    parser.add_argument(
+        "--output_csv",
+        type=str,
+        required=True,
+        help="Output path for the evaluation report CSV.",
+    )
+    parser.add_argument(
+        "--output_roc_grasp",
+        type=str,
+        required=True,
+        help="Output path for the grasp ROC image.",
+    )
+    return parser.parse_args()
 
 
 # ==============================
-# CLIP結果CSVの読み込み（形式ゆれ対応・握りつぶさない）
+# CSVの読み込み
 # ==============================
 def load_clip_csv_flexible(path: str) -> pd.DataFrame:
-    """
-    対応するCSV例:
-    [新] Image, grasp_cos, non_grasp_cos, margin
-    [新] Image, grasp_cos, non_grasp_cos   (margin無しでもOK)
-    """
     if not os.path.exists(path):
         raise FileNotFoundError(f"Result CSV not found: {path}")
 
@@ -21,17 +49,16 @@ def load_clip_csv_flexible(path: str) -> pd.DataFrame:
     df.columns = [c.strip() for c in df.columns]
 
     if "Image" not in df.columns:
-        raise ValueError(f"'Image' column not found in result CSV. columns={list(df.columns)}")
+        raise ValueError(
+            f"'Image' column not found in result CSV. columns={list(df.columns)}"
+        )
 
-    # 列名ゆれを吸収
     grasp_col = None
     non_col = None
 
-    # 新形式優先
     if "grasp_cos" in df.columns and "non_grasp_cos" in df.columns:
         grasp_col, non_col = "grasp_cos", "non_grasp_cos"
     else:
-        # 旧形式
         for g in ["grasp_score", "held_score", "grasp", "held"]:
             if g in df.columns:
                 grasp_col = g
@@ -56,13 +83,11 @@ def load_clip_csv_flexible(path: str) -> pd.DataFrame:
     out["grasp"] = pd.to_numeric(out["grasp"], errors="raise")
     out["non_grasp"] = pd.to_numeric(out["non_grasp"], errors="raise")
 
-    # margin列があるなら使う（ただし型変換は厳しめ）
     if "margin" in df.columns:
         out["margin"] = pd.to_numeric(df["margin"], errors="raise")
     else:
         out["margin"] = out["grasp"] - out["non_grasp"]
 
-    # NaNがあるならここで落とす（静かに落とすのではなく、数を表示して気づけるように）
     n_before = len(out)
     out = out.dropna(subset=["Image", "grasp", "non_grasp", "margin"])
     n_after = len(out)
@@ -82,7 +107,7 @@ def result_check(
     annotation_path: str,
     output_csv: str,
     output_roc_grasp: str,
-    thresh_hold: float = 0.0,  # ★margin閾値。2文なら0.0が自然（argmaxと一致）
+    thresh_hold: float = 0.0,
     eps: float = 1e-12,
 ):
     if not os.path.exists(annotation_path):
@@ -93,7 +118,9 @@ def result_check(
     ann.columns = [c.strip() for c in ann.columns]
 
     if "Image" not in ann.columns or "Annotation" not in ann.columns:
-        raise ValueError(f"Annotation CSV must have columns 'Image' and 'Annotation'. columns={list(ann.columns)}")
+        raise ValueError(
+            f"Annotation CSV must have columns 'Image' and 'Annotation'. columns={list(ann.columns)}"
+        )
 
     ann["Image"] = ann["Image"].astype(str).str.strip()
     ann["Annotation"] = pd.to_numeric(ann["Annotation"], errors="raise").astype(int)
@@ -125,14 +152,14 @@ def result_check(
     TN = int(cm[1, 1])
     total = TP + TN + FP + FN
 
-    accuracy  = (TP + TN) / (total + eps)
+    accuracy = (TP + TN) / (total + eps)
     precision = TP / (TP + FP + eps)
-    recall    = TP / (TP + FN + eps)
-    f1        = (2 * precision * recall) / (precision + recall + eps)
+    recall = TP / (TP + FN + eps)
+    f1 = (2 * precision * recall) / (precision + recall + eps)
 
     # ===== ROC（把持を正例・スコアはmargin）=====
-    os.makedirs(os.path.dirname(output_roc_grasp), exist_ok=True)
-    y_true_grasp = (y_true == 0)  # Trueが把持
+    os.makedirs(os.path.dirname(output_roc_grasp) or ".", exist_ok=True)
+    y_true_grasp = y_true == 0  # Trueが把持
     y_score = df["margin"].astype(float).to_numpy()
 
     fpr, tpr, _ = roc_curve(y_true_grasp, y_score)
@@ -165,10 +192,10 @@ def result_check(
     print(f"AUC      : {auc_grasp:.4f}")
 
     # ===== レポートCSV保存 =====
-    os.makedirs(os.path.dirname(output_csv), exist_ok=True)
+    os.makedirs(os.path.dirname(output_csv) or ".", exist_ok=True)
 
-    cm_row0 = f"[{cm[0,0]} {cm[0,1]}]"
-    cm_row1 = f"[{cm[1,0]} {cm[1,1]}]"
+    cm_row0 = f"[{cm[0, 0]} {cm[0, 1]}]"
+    cm_row1 = f"[{cm[1, 0]} {cm[1, 1]}]"
 
     report_rows = [
         ("Result file", result_path),
@@ -176,19 +203,16 @@ def result_check(
         ("Count", str(total)),
         ("Threshold(margin)", str(thresh_hold)),
         ("", ""),
-
         ("Confusion Matrix (rows=true [grasp=0, non_grasp=1], cols=pred [0,1])", ""),
         ("CM row0", cm_row0),
         ("CM row1", cm_row1),
         ("", ""),
-
         ("Confusion Matrix terms (positive = grasp=0)", ""),
         ("TP (grasp->grasp)", str(TP)),
         ("FN (grasp->non_grasp)", str(FN)),
         ("FP (non_grasp->grasp)", str(FP)),
         ("TN (non_grasp->non)", str(TN)),
         ("", ""),
-
         ("Metrics (positive class = grasp=0)", ""),
         ("Accuracy", f"{accuracy:.4f}"),
         ("Precision", f"{precision:.4f}"),
@@ -207,20 +231,17 @@ def result_check(
     print(f"Saved ROC image : {output_roc_grasp}")
 
 
-if __name__ == "__main__":
-    result_path = "/data/Users/kuroda/2025_research/2025_result/2025-12-28_kiban/test/CLIP/2026-1-5_kiban_test2_demo_CLIP_results_metaclip_fullcc/clip_cosine_results.csv" #CLIP結果csv
-    output_csv = "/data/Users/kuroda/2025_research/2025_result/2025-12-28_kiban/CLIP_result/test2/2026-1-7_test2_CLIP_results_metaclip_fullcc_debug.csv" #出力
-    output_roc_grasp = "/data/Users/kuroda/2025_research/2025_result/2025-12-28_kiban/CLIP_result/test2/roc_metaclip_fullcc_debug.png" #出力roc画像
-    annotation_path = "/data/Users/kuroda/2025_research/2025-12-28_kiban/CLIP_csv/marge/merged_annotations_2026_1_5_kiban_test2.csv" #アノテーションcsv
-
-    #閾値：margin
-    thresh_hold = 0.0
-
+def main():
+    args = get_args()
     result_check(
-        result_path=result_path,
-        annotation_path=annotation_path,
-        output_csv=output_csv,
-        output_roc_grasp=output_roc_grasp,
-        thresh_hold=thresh_hold,
+        result_path=args.result_path,
+        annotation_path=args.annotation_path,
+        output_csv=args.output_csv,
+        output_roc_grasp=args.output_roc_grasp,
+        thresh_hold=0.0,
         eps=1e-4,
     )
+
+
+if __name__ == "__main__":
+    main()

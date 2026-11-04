@@ -2,14 +2,18 @@
 
 # ==== パスの設定 ====
 
+# このスクリプトの場所を基準にリポジトリのルートを求める
+REPO_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+PYTHON_SCRIPT="${REPO_ROOT}/src/train.py"
+
 # 訓練データ（0/1 のサブディレクトリを想定）
-TRAIN_PATH="/data/Users/kuroda/2025_research/2025-12-08_train_data/train"
+TRAIN_PATH="${REPO_ROOT}/dataset2/train/sampling100+100"
 
 # 保存先
-SAVE_NAME="2025-12-08_ResNet50_SVM_C"
-SAVE_ROOT="./2025_result/2025-12-08_train"
+SAVE_NAME="train_sampling"
+SAVE_ROOT="${REPO_ROOT}/results/Supervsed_Learning/train"
 SAVE_PATH="${SAVE_ROOT}/${SAVE_NAME}"
-LOG_PATH="./logs"
+LOG_PATH="${REPO_ROOT}/logs"
 
 # 使用GPU
 GPU_ID=0
@@ -21,7 +25,7 @@ mkdir -p "${LOG_PATH}/${SAVE_NAME}"
 mkdir -p "${SAVE_PATH}"
 
 # ==== 実行 ====
-nohup python ./src/train.py \
+nohup python "${PYTHON_SCRIPT}" \
     --gpu ${GPU_ID} \
     --train_data_path "${TRAIN_PATH}" \
     --save_path "${SAVE_PATH}" \

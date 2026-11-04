@@ -6,18 +6,22 @@
 
 # ==== パス設定 ====
 
+# このスクリプトの場所を基準にリポジトリのルートを求める
+REPO_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+PYTHON_SCRIPT="${REPO_ROOT}/src/CLIP_cosine similarity.py"
+
 # 入力データ（0/1 のサブディレクトリを想定）
-INPUT_PATH="/data/Users/kuroda/2025_research/2025-12-28_kiban/test_sampling"
+INPUT_PATH="${REPO_ROOT}/dataset2/test/test_sampling"
 
 # 実験名（ログ・保存先に使う）
-EXP_NAME="2026-1-5_kiban_test_demo_CLIP_results_dfn5b_debug"
+EXP_NAME="CLIP_cosine_similarity_test_sampling"
 
 # 保存先ルート
-SAVE_ROOT="/data/Users/kuroda/2025_research/2025_result/2025-12-28_kiban/test/CLIP"
+SAVE_ROOT="${REPO_ROOT}/results/CLIP_result"
 SAVE_PATH="${SAVE_ROOT}/${EXP_NAME}"
 
 # ログ保存先
-LOG_ROOT="/data/Users/kuroda/2025_research/2025_result/2025-12-28_kiban/log"
+LOG_ROOT="${REPO_ROOT}/logs"
 LOG_PATH="${LOG_ROOT}/${EXP_NAME}"
 
 # 使用GPU
@@ -25,8 +29,8 @@ GPU_ID=3
 export CUDA_VISIBLE_DEVICES="${GPU_ID}"
 
 # ==== CLIP設定 ====
-MODEL_NAME="ViT-H-14-378-quickgelu" #デフォルト：ViT-H-14-378-quickgelu
-PRETRAINED="dfn5b" #デフォルト：dfn5b
+MODEL_NAME="ViT-L-14-quickgelu"
+PRETRAINED="metaclip_fullcc"
 CROP_SIZE=1080
 
 # ==== テキスト設定 ====
@@ -42,7 +46,7 @@ OUT_CSV="${SAVE_PATH}/clip_results.csv"
 OUT_LOG="${LOG_PATH}/clip.log"
 
 # ==== 実行 ====
-nohup python /data/Users/kuroda/2026_NOLTA_Kuroda_Grasp_State_Recognition/src/CLIP_cosine similarity.py \
+nohup python "${PYTHON_SCRIPT}" \
   --input_dir "${INPUT_PATH}" \
   --output_csv "${OUT_CSV}" \
   --gpu "${GPU_ID}" \
